@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SH文件加密解密一体化工具</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Roboto', 'Microsoft YaHei', sans-serif;
+        }
+        /* 动态渐变背景（自动变色） */
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+            background-size: 600% 600%;
+            animation: bgGradient 15s ease infinite; /* 自动变色动画 */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            color: #fff;
+            overflow-x: hidden;
+        }
+        @keyframes bgGradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* 容器3D效果 */
+        .container {
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(18px);
+            border-radius: 20px;
+            padding: 35px;
+            width: 100%;
+            max-width: 580px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.5s ease;
+        }
+        .container:hover {
+            transform: translateY(-5px) rotateX(2deg); /* 悬浮3D旋转 */
+        }
+        /* 容器光效边框 */
+        .container::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, #ffd700, #ff6b6b, #1a2a6c);
+            background-size: 200% 200%;
+            animation: borderGlow 8s linear infinite;
+            border-radius: 22px;
+            z-index: -1;
+            filter: blur(8px);
+            opacity: 0.7;
+        }
+        @keyframes borderGlow {
+            0% { background-position: 0% 0%; }
+            50% { background-position: 100% 100%; }
+            100% { background-position: 0% 0%; }
+        }
+
+        /* 标题流光效果 */
+        .title {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 24px;
+            background: linear-gradient(90deg, #ffd700, #ff9a00, #ff6b6b);
+            background-size: 200% 200%;
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            font-weight: 800;
+            animation: textShine 3s linear infinite;
+            position: relative;
+        }
+        @keyframes textShine {
+            0% { background-position: -200% 0%; }
+            100% { background-position: 200% 0%; }
+        }
+
+        /* 文件选择区（炫酷升级） */
+        .file-box {
+            margin-bottom: 30px;
+            position: relative;
+        }
+        .file-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 180px;
+            border: 2px dashed rgba(255, 215, 0, 0.5);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.4s ease;
+            background: rgba(255, 255, 255, 0.08);
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+        /* 文件选择区悬浮效果 */
+        .file-btn:hover {
+            background: rgba(255, 215, 0, 0.1);
+            border-color: #ffd700;
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(255, 215, 0, 0.2);
+        }
+        /* 文件选择区流光覆盖层 */
+        .file-btn::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 215, 0, 0.2), transparent);
+            transition: left 0.6s ease;
+        }
+        .file-btn:hover::after {
+            left: 100%; /* 悬浮时流光划过 */
+        }
+        /* 文件图标动画 */
+        .file-icon {
+            font-size: 42px;
+            margin-bottom: 15px;
+            color: #ffd700;
+            text-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+            animation: iconFloat 3s ease-in-out infinite;
+        }
+        @keyframes iconFloat {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+        .file-desc {
+            text-align: center;
+            font-size: 15px;
+            color: #f5f5f5;
+            line-height: 1.6;
+        }
+        .file-input {
+            display: none;
+        }
+
+        /* 文件状态提示框 */
+        .file-status {
+            margin-top: 15px;
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.35);
+            border-radius: 8px;
+            font-size: 14px;
+            min-height: 45px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-left: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+        .error {
+            color: #ff4444;
+            border-left-color: #ff4444;
+            background: rgba(255, 68, 68, 0.1);
+        }
+        .success {
+            color: #32cd32;
+            border-left-color: #32cd32;
+            background: rgba(50, 205, 50, 0.1);
+        }
+
+        /* 进度条（流光效果） */
+        .progress-area {
+            margin: 25px 0;
+            display: none;
+            position: relative;
+        }
+        .progress-top {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 13px;
+            color: #eee;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 10px;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 5px;
+            overflow: hidden;
+            position: relative;
+        }
+        .progress-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #ffd700, #ff9a00, #ff6b6b);
+            background-size: 200% 100%;
+            border-radius: 5px;
+            transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            animation: progressShine 2s linear infinite;
+        }
+        @keyframes progressShine {
+            0% { background-position: -200% 0%; }
+            100% { background-position: 200% 0%; }
+        }
+
+        /* 操作按钮（3D悬浮+流光） */
+        .operate-btn {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(90deg, #ffd700, #ff9a00, #ff6b6b);
+            background-size: 200% 100%;
+            color: #333;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.4s ease;
+            margin-top: 10px;
+            display: none;
+            box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+            animation: btnGradient 3s linear infinite;
+        }
+        @keyframes btnGradient {
+            0% { background-position: 0% 0%; }
+            100% { background-position: 200% 0%; }
+        }
+        .operate-btn:hover {
+            transform: translateY(-4px) scale(1.02);
+            box-shadow: 0 8px 25px rgba(255, 215, 0, 0.4);
+        }
+        .operate-btn:disabled {
+            background: rgba(255, 255, 255, 0.2);
+            color: #999;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+            animation: none;
+        }
+
+        /* 说明文本（柔和发光） */
+        .info-text {
+            margin-top: 20px;
+            font-size: 12px;
+            color: #eee;
+            text-align: center;
+            line-height: 1.8;
+            text-shadow: 0 0 5px rgba(255, 255, 255, 0.2);
+        }
+
+        /* 浮动装饰点（增强背景层次感） */
+        .decor-dot {
+            position: fixed;
+            border-radius: 50%;
+            background: rgba(255, 215, 0, 0.1);
+            z-index: 0;
+            animation: dotFloat 8s linear infinite;
+        }
+        @keyframes dotFloat {
+            0% { transform: translate(0, 0) scale(1); opacity: 0.6; }
+            50% { transform: translate(30px, -30px) scale(1.2); opacity: 0.3; }
+            100% { transform: translate(0, 0) scale(1); opacity: 0.6; }
+        }
+    </style>
+</head>
+<body>
+    <!-- 动态装饰点（增强背景炫酷感） -->
+    <div class="decor-dot" style="width: 100px; height: 100px; top: 10%; left: 8%; animation-duration: 10s;"></div>
+    <div class="decor-dot" style="width: 150px; height: 150px; bottom: 15%; right: 10%; animation-duration: 12s;"></div>
+    <div class="decor-dot" style="width: 80px; height: 80px; top: 60%; right: 20%; animation-duration: 9s;"></div>
+
+    <div class="container">
+        <h1 class="title">SH文件加密解密一体化工具</h1>
+
+        <!-- 文件选择区域 -->
+        <div class="file-box">
+            <label class="file-btn" for="shFileInput">
+                <div class="file-icon">📜</div>
+                <div class="file-desc">
+                    点击选择或拖拽文件<br>
+                    <span style="color: #ffd700; font-weight: 600;">仅支持 .sh 后缀文件</span>
+                </div>
+                <input type="file" id="shFileInput" class="file-input" accept=".sh">
+            </label>
+            <div class="file-status" id="fileStatus">未选择文件</div>
+        </div>
+
+        <!-- 进度条区域 -->
+        <div class="progress-area" id="progressArea">
+            <div class="progress-top">
+                <span id="progressText">正在加密文件...</span>
+                <span id="progressPercent">0%</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+        </div>
+
+        <!-- 下载按钮 -->
+        <button class="operate-btn" id="downloadBtn" disabled>生成可运行SH文件（加密+自带解密）</button>
+
+        <!-- 功能说明 -->
+        <div class="info-text">
+            🔒 加密：SH代码转Base64，嵌入可运行脚本<br>
+            🚀 解密：下载后直接执行，自动解密并运行原始代码<br>
+            ⚠️ 支持：Linux/Termux/MT管理器等Shell环境<br>
+            💡 提示：文件最大支持10MB，确保环境有base64命令
+        </div>
+    </div>
+
+    <script>
+        // 1. 获取DOM元素
+        const fileInput = document.getElementById('shFileInput');
+        const fileStatus = document.getElementById('fileStatus');
+        const progressArea = document.getElementById('progressArea');
+        const progressFill = document.getElementById('progressFill');
+        const progressText = document.getElementById('progressText');
+        const progressPercent = document.getElementById('progressPercent');
+        const downloadBtn = document.getElementById('downloadBtn');
+
+        let originalShFile = null; // 原始SH文件
+        let base64EncryptedContent = ''; // Base64加密后的内容
+
+        // 2. 文件选择监听（校验.sh后缀）
+        fileInput.addEventListener('change', (e) => {
+            const selectedFile = e.target.files[0];
+            if (!selectedFile) {
+                resetState();
+                return;
+            }
+
+            // 校验文件类型
+            const fileName = selectedFile.name;
+            const fileExt = fileName.split('.').pop().toLowerCase();
+            if (fileExt !== 'sh') {
+                fileStatus.textContent = `错误：仅支持 .sh 文件，当前是 .${fileExt}`;
+                fileStatus.className = 'file-status error';
+                resetState();
+                return;
+            }
+
+            // 校验文件大小（最大10MB）
+            const maxSize = 10 * 1024 * 1024;
+            if (selectedFile.size > maxSize) {
+                fileStatus.textContent = `错误：文件超过10MB（当前${(selectedFile.size/1024/1024).toFixed(1)}MB）`;
+                fileStatus.className = 'file-status error';
+                resetState();
+                return;
+            }
+
+            // 校验通过（添加选择成功动画）
+            originalShFile = selectedFile;
+            fileStatus.textContent = `已选择：${fileName} | 大小：${formatFileSize(selectedFile.size)}`;
+            fileStatus.className = 'file-status success';
+            downloadBtn.style.display = 'block';
+            downloadBtn.disabled = false;
+            // 按钮弹出动画
+            setTimeout(() => {
+                downloadBtn.style.transform = 'translateY(0)';
+            }, 100);
+        });
+
+        // 3. 下载按钮点击（生成带解密逻辑的SH文件）
+        downloadBtn.addEventListener('click', () => {
+            if (!originalShFile) return;
+
+            // 显示进度条并初始化
+            progressArea.style.display = 'block';
+            progressFill.style.width = '0%';
+            progressPercent.textContent = '0%';
+            progressText.textContent = '正在读取并加密...';
+            downloadBtn.disabled = true;
+
+            // 读取并加密文件
+           
+            const reader = new FileReader();
+            reader.readAsText(originalShFile);
+
+            // 读取进度反馈
+            reader.onprogress = (e) => {
+                if (e.lengthComputable) {
+                    const percent = Math.round((e.loaded / e.total) * 50); // 读取占50%进度
+                    progressFill.style.width = `${percent}%`;
+                    progressPercent.textContent = `${percent}%`;
+                }
+            };
+
+            // 读取完成后执行加密+生成文件
+            reader.onload = (e) => {
+                try {
+                    const rawShContent = e.target.result;
+                    progressText.textContent = '正在生成加密脚本...';
+
+                    // 步骤1：Base64加密SH源码（基础混淆）
+                    base64EncryptedContent = btoa(encodeURIComponent(rawShContent));
+                    
+                    // 更新进度（加密占30%，累计80%）
+                    const encryptPercent = 80;
+                    progressFill.style.width = `${encryptPercent}%`;
+                    progressPercent.textContent = `${encryptPercent}%`;
+
+                    // 步骤2：生成"自带解密逻辑的可运行SH文件"
+                    const decryptableShContent = `#!/bin/sh
+# ==============================
+# 加密SH脚本（自动解密版）
+# 来源文件：${originalShFile.name}
+# 生成时间：${new Date().toLocaleString()}
+# 运行方式：chmod +x 本文件 && ./本文件
+# ==============================
+
+# 自动解密函数
+auto_decrypt() {
+    local encrypted_base64=\$1
+    # 1. Base64解码 → 2. URI解码（处理特殊字符）
+    local decrypted_content=\$(echo "\$encrypted_base64" | base64 -d 2>/dev/null | decodeURI 2>/dev/null)
+    if [ \$? -ne 0 ]; then
+        echo "❌ 解密失败！可能是文件损坏或环境缺少base64命令"
+        exit 1
+    fi
+    echo "\$decrypted_content"
+}
+
+# 加密后的核心内容（Base64格式）
+ENCRYPTED_DATA="${base64EncryptedContent}"
+
+# 执行解密并运行原始脚本
+echo "🔍 正在自动解密脚本..."
+DECRYPTED_SCRIPT=\$(auto_decrypt "\$ENCRYPTED_DATA")
+
+echo "✅ 解密成功！开始运行原始脚本..."
+echo "=================================="
+eval "\$DECRYPTED_SCRIPT"
+
+# 运行结果反馈
+if [ \$? -eq 0 ]; then
+    echo "=================================="
+    echo "🎉 原始脚本运行完成！"
+else
+    echo "=================================="
+    echo "❌ 原始脚本运行失败，请检查源码语法"
+    exit 1
+fi
+
+# 补充URI解码函数（兼容部分无decodeURI的环境）
+decodeURI() {
+    sed 's/%25/%/g; s/%20/ /g; s/%21/!/g; s/%22/"/g; s/%23/#/g; s/%24/\$/g; s/%26/\&/g; s/%27/\\'/g; s/%28/(/g; s/%29/)/g; s/%2A/*/g; s/%2B/+/g; s/%2C/,/g; s/%2D/-/g; s/%2E/./g; s/%2F/\//g; s/%3A/:/g; s/%3B/;/g; s/%3C/</g; s/%3D/=/g; s/%3E/>/g; s/%3F/?/g; s/%40/@/g; s/%5B/\[/g; s/%5C/\\\\/g; s/%5D/\]/g; s/%5E/^/g; s/%5F/_/g; s/%60/\`/g; s/%7B/{/g; s/%7C/|/g; s/%7D/}/g; s/%7E/~/'
+}
+`;
+
+                    // 更新进度（文件生成占20%，累计100%）
+                    progressFill.style.width = '100%';
+                    progressPercent.textContent = '100%';
+                    progressText.textContent = '加密完成，正在准备下载...';
+
+                    // 步骤3：触发文件下载
+                    setTimeout(() => {
+                        const blob = new Blob([decryptableShContent], { type: 'text/x-sh' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        // 下载文件名：原文件名_encrypted.sh
+                        const downloadFileName = originalShFile.name.replace('.sh', '_encrypted.sh');
+                        a.href = url;
+                        a.download = downloadFileName;
+                        document.body.appendChild(a);
+                        a.click();
+
+                        // 清理资源+状态提示
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(blob);
+                        fileStatus.textContent = `✅ 已生成：${downloadFileName} | 可直接运行`;
+                        fileStatus.className = 'file-status success';
+                    }, 800);
+
+                } catch (error) {
+                    fileStatus.textContent = `❌ 加密出错：${error.message}`;
+                    fileStatus.className = 'file-status error';
+                    progressText.textContent = '加密失败';
+                }
+            };
+
+            // 读取错误处理
+            reader.onerror = () => {
+                fileStatus.textContent = '❌ 文件读取失败！可能是权限不足或文件损坏';
+                fileStatus.className = 'file-status error';
+                progressText.textContent = '读取失败';
+            };
+        });
+
+        // 4. 拖拽文件支持（增强交互）
+        const fileBtn = document.querySelector('.file-btn');
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventType => {
+            fileBtn.addEventListener(eventType, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                // 拖拽时添加高亮反馈
+                if (eventType === 'dragenter' || eventType === 'dragover') {
+                    fileBtn.style.background = 'rgba(255, 215, 0, 0.15)';
+                    fileBtn.style.borderColor = '#ffd700';
+                } else {
+                    fileBtn.style.background = 'rgba(255, 255, 255, 0.08)';
+                    fileBtn.style.borderColor = 'rgba(255, 215, 0, 0.5)';
+                }
+            });
+        });
+
+        // 拖拽放下时处理文件
+        fileBtn.addEventListener('drop', (e) => {
+            const droppedFile = e.dataTransfer.files[0];
+            if (droppedFile) {
+                const dataTransfer = new DataTransfer();
+                dataTransfer.items.add(droppedFile);
+                fileInput.files = dataTransfer.files;
+                fileInput.dispatchEvent(new Event('change')); // 触发文件选择逻辑
+            }
+        });
+
+        // 5. 工具函数：格式化文件大小（B→KB→MB）
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return `${bytes} B`;
+            if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+            return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+        }
+
+        // 6. 工具函数：重置页面状态
+        function resetState() {
+            originalShFile = null;
+            base64EncryptedContent = '';
+            downloadBtn.style.display = 'none';
+            downloadBtn.disabled = true;
+            progressArea.style.display = 'none';
+            fileStatus.textContent = '未选择文件';
+            fileStatus.className = 'file-status';
+        }
+
+        // 初始化：给文件选择区添加加载动画（首次进入时）
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                fileBtn.style.opacity = '1';
+                fileBtn.style.transform = 'translateY(0)';
+            }, 300);
+        });
+    </script>
+</body>
+</html>
